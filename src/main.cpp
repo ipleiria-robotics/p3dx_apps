@@ -43,7 +43,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sensor_msgs/JoyFeedbackArray.h>
 #include <sensor_msgs/JoyFeedback.h>
 #include <wiimote/State.h>
-
+#include <p2os_msgs/MotorState.h>
 
 // Radians <-> Degrees convertion tools
 #define DEG2RAD(x) x*M_PI/180.0 // Transform from degrees to radians
@@ -65,7 +65,7 @@ double lin_vel=0, ang_vel=0;
 double l_scale_, a_scale_;
 
 bool home_button_pressed = false;
-ros::Publisher wiiPub;
+ros::Publisher wiiPub, motPub;
 
 double clipValue(double value, double min, double max)
 {
@@ -76,6 +76,18 @@ double clipValue(double value, double min, double max)
   else return value;
 }
 
+
+void motorCallback(const p2os_msgs::MotorStateConstPtr& msg)
+{
+  // If the motors are turned off, turn them on
+  if( msg->state == 0 )
+  {
+    p2os_msgs::MotorState motor_msg;
+    motor_msg.state = 1;
+    motPub.publish(motor_msg);
+  }
+}
+  
 void wiiCallback(const wiimote::StateConstPtr& wii)
 {
   bool publish_msg = false;
@@ -252,6 +264,7 @@ int main(int argc, char** argv)
   // ROS variables/objects
   ros::NodeHandle nh; // Node handle
   ros::Publisher velPub; // Velocity commands publisher
+  ros::Publisher motPub; // Motor state commands publisher
   geometry_msgs::Twist vel_cmd; // Velocity commands
 
   std::cout << "Random navigation with obstacle avoidance and map generation\n"
@@ -277,7 +290,8 @@ int main(int argc, char** argv)
   /// Setup publishers
   velPub = nh.advertise<geometry_msgs::Twist>("/robot_0/cmd_vel", 1);
   wiiPub = nh.advertise<sensor_msgs::JoyFeedbackArray>("/joy/set_feedback", 1);
-    
+  motPub = nh.advertise<p2os_msgs::MotorState>("/robot_0/cmd_motor_state", 1);
+
   // Infinite loop
   ros::Rate cycle(10.0); // Rate when no key is being pressed
   while(ros::ok())
