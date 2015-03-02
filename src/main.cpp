@@ -77,7 +77,7 @@ double clipValue(double value, double min, double max)
 }
 
 
-void motorCallback(const p2os_msgs::MotorStateConstPtr& msg)
+void motorsCallback(const p2os_msgs::MotorStateConstPtr& msg)
 {
   // If the motors are turned off, turn them on
   if( msg->state == 0 )
@@ -286,7 +286,9 @@ int main(int argc, char** argv)
   // Wiimote
   ros::Subscriber sub_joy = nh.subscribe("joy", 1, joyCallback);
   ros::Subscriber sub_wii = nh.subscribe("wiimote/state", 1, wiiCallback);
-  
+  // Motors 
+  ros::Subscriber sub_motors = nh.subscribe("/robot_0/motor_state", 1, motorsCallback);
+      
   /// Setup publishers
   velPub = nh.advertise<geometry_msgs::Twist>("/robot_0/cmd_vel", 1);
   wiiPub = nh.advertise<sensor_msgs::JoyFeedbackArray>("/joy/set_feedback", 1);
