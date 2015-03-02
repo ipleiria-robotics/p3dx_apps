@@ -65,7 +65,7 @@ double lin_vel=0, ang_vel=0;
 double l_scale_, a_scale_;
 
 bool home_button_pressed = false;
-ros::Publisher wiiPub, motPub;
+ros::Publisher wiiPub;//, motPub;
 
 double clipValue(double value, double min, double max)
 {
@@ -76,7 +76,7 @@ double clipValue(double value, double min, double max)
   else return value;
 }
 
-
+/*
 void motorsCallback(const p2os_msgs::MotorStateConstPtr& msg)
 {
   // If the motors are turned off, turn them on
@@ -87,7 +87,8 @@ void motorsCallback(const p2os_msgs::MotorStateConstPtr& msg)
     motPub.publish(motor_msg);
   }
 }
-  
+*/  
+
 void wiiCallback(const wiimote::StateConstPtr& wii)
 {
   bool publish_msg = false;
@@ -253,7 +254,7 @@ int main(int argc, char** argv)
   // Create robot related objects
   //
   // Linear and angular velocities for the robot (initially stopped)
-  double last_ang_vel = DEG2RAD(10);
+  double last_ang_vel = DEG2RAD(20);
   // Navigation variables
   bool avoid, new_rotation = false;
   double stop_front_dist, min_front_dist;
@@ -274,9 +275,15 @@ int main(int argc, char** argv)
   ros::NodeHandle n_private("~");
   n_private.param("min_front_dist", min_front_dist, 1.0);
   n_private.param("stop_front_dist", stop_front_dist, 0.6);
-  n_private.param("scale_angular", a_scale_, 1.0);
-  n_private.param("scale_linear", l_scale_, 0.05);
-  
+  n_private.param("scale_angular", a_scale_, 0.2);
+  n_private.param("scale_linear", l_scale_, 0.1);
+ 
+  sleep(5);
+ 
+  /// Setup publishers
+  velPub = nh.advertise<geometry_msgs::Twist>("/robot_0/cmd_vel", 1);
+  wiiPub = nh.advertise<sensor_msgs::JoyFeedbackArray>("/joy/set_feedback", 1);
+  //motPub = nh.advertise<p2os_msgs::MotorState>("/robot_0/cmd_motor_state", 1);
 
   /// Setup subscribers
   // Odometry
@@ -287,12 +294,8 @@ int main(int argc, char** argv)
   ros::Subscriber sub_joy = nh.subscribe("joy", 1, joyCallback);
   ros::Subscriber sub_wii = nh.subscribe("wiimote/state", 1, wiiCallback);
   // Motors 
-  ros::Subscriber sub_motors = nh.subscribe("/robot_0/motor_state", 1, motorsCallback);
+  //ros::Subscriber sub_motors = nh.subscribe("/robot_0/motor_state", 1, motorsCallback);
       
-  /// Setup publishers
-  velPub = nh.advertise<geometry_msgs::Twist>("/robot_0/cmd_vel", 1);
-  wiiPub = nh.advertise<sensor_msgs::JoyFeedbackArray>("/joy/set_feedback", 1);
-  motPub = nh.advertise<p2os_msgs::MotorState>("/robot_0/cmd_motor_state", 1);
 
   // Infinite loop
   ros::Rate cycle(10.0); // Rate when no key is being pressed
@@ -302,8 +305,8 @@ int main(int argc, char** argv)
     ros::spinOnce();
 
     // Only change navigation controls if laser was updated
-    if( laser_updated == false )
-      continue;
+//    if( laser_updated == false )
+//      continue;
 
     // show pose estimated from odometry
     std::cout << std::setiosflags(std::ios::fixed) << std::setprecision(3)
@@ -333,7 +336,7 @@ int main(int argc, char** argv)
         }
       } else
       {
-        lin_vel = 0.5;
+        lin_vel = 0.6;
         ang_vel = 0;
         new_rotation = false;
       }
@@ -354,7 +357,7 @@ int main(int argc, char** argv)
       }
     } else // Manual mode
     {
-      if( closest_front_obstacle < min_front_dist )
+      if( closest_front_obstacle < stop_front_dist )
         lin_vel = 0;
     } 
       
