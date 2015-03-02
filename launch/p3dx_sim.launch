@@ -1,0 +1,10 @@
+<launch>
+  <!-- Run the stage simulator -->
+  <node pkg="stage_ros" type="stageros" name="stage" required="true"
+        args="$(env HOME)/adv_robotics/worlds/stage/factory_laser_with_landmarks.world">
+        <remap from="robot_0/base_scan" to="robot_0/scan"/>
+  </node>
+  
+  <!-- Run our application -->
+  <node pkg="p3dx_apps" type="p3dx_demo" name="p3dx_demo" required="true" cwd="node"/>
+</launch>
