@@ -7,3 +7,10 @@ Make sure your user is part of the dialout group in order to use the Kokuyo lase
     
     
     sudo apt-get install ros-indig-urg-node
+    
+    sudo apt-get install ros-indigo-p2os-*
+    
+    sudo apt-get install ros-indigo-wiimote
+    
+    
+    p2os_driver

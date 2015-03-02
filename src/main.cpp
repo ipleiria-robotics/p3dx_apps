@@ -39,6 +39,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <nav_msgs/Odometry.h> // Odometry messages
 #include <sensor_msgs/LaserScan.h> // Laser sensor messages
 #include <tf/tf.h> // Geometry transformations
+#include <sensor_msgs/Joy.h>
+#include <sensor_msgs/JoyFeedbackArray.h>
+#include <sensor_msgs/JoyFeedback.h>
+#include <wiimote/State.h>
+
 
 // Radians <-> Degrees convertion tools
 #define DEG2RAD(x) x*M_PI/180.0 // Transform from degrees to radians
@@ -55,6 +60,12 @@ geometry_msgs::Pose2D robot_pose;
 double true_lin_vel, true_ang_vel;
 bool odom_updated = false, laser_updated = false;
 double closest_front_obstacle, closest_left_obstacle, closest_right_obstacle;
+bool manual_mode = true; // If true, navigate in automatic mode
+double lin_vel=0, ang_vel=0;
+double l_scale_, a_scale_;
+
+bool home_button_pressed = false;
+ros::Publisher wiiPub;
 
 double clipValue(double value, double min, double max)
 {
@@ -63,6 +74,94 @@ double clipValue(double value, double min, double max)
   else if( value < min )
     return min;
   else return value;
+}
+
+void wiiCallback(const wiimote::StateConstPtr& wii)
+{
+  bool publish_msg = false;
+  
+  sensor_msgs::JoyFeedback led0, led1, led2, led3;
+  sensor_msgs::JoyFeedbackArray msg;
+  if( wii->LEDs[0] == false )
+  {
+    led0.type = sensor_msgs::JoyFeedback::TYPE_LED;
+    led0.id = 0;
+    led0.intensity = 1.0;
+    msg.array.push_back(led0);
+    publish_msg = true;
+  }
+    
+  if( (wii->percent_battery > 25) && (wii->LEDs[1] == false) )
+  {
+    led1.type = sensor_msgs::JoyFeedback::TYPE_LED;
+    led1.id = 1;
+    led1.intensity = 1.0;
+    msg.array.push_back(led1);
+    publish_msg = true;
+  }
+  
+  if( (wii->percent_battery > 50) && (wii->LEDs[2] == false) )
+  {
+    led2.type = sensor_msgs::JoyFeedback::TYPE_LED;
+    led2.id = 1;
+    led2.intensity = 1.0;
+    msg.array.push_back(led2);
+    publish_msg = true;
+  }
+
+  if( (wii->percent_battery > 75) && (wii->LEDs[3] == false) )
+  {
+    led3.type = sensor_msgs::JoyFeedback::TYPE_LED;
+    led3.id = 1;
+    led3.intensity = 1.0;
+    msg.array.push_back(led3);
+    publish_msg = true;
+  }
+  
+  if( publish_msg == true)
+    wiiPub.publish(msg);
+}
+
+void joyCallback(const sensor_msgs::Joy::ConstPtr& joy)
+{
+  // Change mode when home button is pressed
+  if( (home_button_pressed == false) && (joy->buttons[10] == true) )
+  {
+    // Stop the robot
+    ang_vel = 0;
+    lin_vel = 0;
+    home_button_pressed = true;
+    manual_mode = !manual_mode;
+    return;
+  } else if( joy->buttons[10] == false )
+    home_button_pressed = false;
+  
+  if( manual_mode == true )
+  {
+    // If the deadman switchis not pressed, stop the robot
+    if( joy->buttons[2] == false )
+    {
+      lin_vel = 0;
+      ang_vel = 0;
+      return;
+    }
+    
+    // Update angular velocity based on the orientation
+    ang_vel = a_scale_*joy->axes[1];
+    // Update the linear velocity based on  buttons 1 and 2 
+    if( joy->buttons[0] == true )
+      lin_vel += l_scale_;
+    else
+      lin_vel -= l_scale_;
+    
+    if(joy->buttons[1] == true )
+      lin_vel = 0;
+    
+    // Limit maximum velocities
+    // (not needed here)
+    lin_vel = clipValue(lin_vel, 0.0, MAX_LIN_VEL);
+    ang_vel = clipValue(ang_vel, -MAX_ANG_VEL, MAX_ANG_VEL);
+  }
 }
 
 void odomCallback(const nav_msgs::Odometry& msg)
@@ -142,7 +241,6 @@ int main(int argc, char** argv)
   // Create robot related objects
   //
   // Linear and angular velocities for the robot (initially stopped)
-  double lin_vel=0, ang_vel=0;
   double last_ang_vel = DEG2RAD(10);
   // Navigation variables
   bool avoid, new_rotation = false;
@@ -153,7 +251,7 @@ int main(int argc, char** argv)
 
   // ROS variables/objects
   ros::NodeHandle nh; // Node handle
-  ros::Publisher vel_pub; // Velocity commands publisher
+  ros::Publisher velPub; // Velocity commands publisher
   geometry_msgs::Twist vel_cmd; // Velocity commands
 
   std::cout << "Random navigation with obstacle avoidance and map generation\n"
@@ -163,16 +261,23 @@ int main(int argc, char** argv)
   ros::NodeHandle n_private("~");
   n_private.param("min_front_dist", min_front_dist, 1.0);
   n_private.param("stop_front_dist", stop_front_dist, 0.6);
+  n_private.param("scale_angular", a_scale_, 1.0);
+  n_private.param("scale_linear", l_scale_, 0.05);
+  
 
   /// Setup subscribers
   // Odometry
   ros::Subscriber sub_odom = nh.subscribe("/robot_0/odom", 1, odomCallback);
   // Laser scans
   ros::Subscriber sub_laser = nh.subscribe("/robot_0/scan", 1, laserCallback);
-
-  /// Setup publisher
-  vel_pub = nh.advertise<geometry_msgs::Twist>("/robot_0/cmd_vel", 1);
-
+  // Wiimote
+  ros::Subscriber sub_joy = nh.subscribe("joy", 1, joyCallback);
+  ros::Subscriber sub_wii = nh.subscribe("wiimote/state", 1, wiiCallback);
+  
+  /// Setup publishers
+  velPub = nh.advertise<geometry_msgs::Twist>("/robot_0/cmd_vel", 1);
+  wiiPub = nh.advertise<sensor_msgs::JoyFeedbackArray>("/joy/set_feedback", 1);
+    
   // Infinite loop
   ros::Rate cycle(10.0); // Rate when no key is being pressed
   while(ros::ok())
@@ -196,40 +301,47 @@ int main(int argc, char** argv)
               << RAD2DEG(true_ang_vel) << " [º/s]\n";
 
     // Check for obstacles near the front  of the robot
-    avoid = false;
-    if( closest_front_obstacle < min_front_dist )
-    {
-      if( closest_front_obstacle < stop_front_dist )
+    if( manual_mode == false ) // Autonomous mode
+    {    
+      avoid = false;
+      if( closest_front_obstacle < min_front_dist )
       {
-        avoid = true;
-        lin_vel = -0.100;
+        if( closest_front_obstacle < stop_front_dist )
+        {
+          avoid = true;
+          lin_vel = -0.100;
+        } else
+        {
+          avoid = true;
+          lin_vel = 0;
+        }
       } else
       {
-        avoid = true;
-        lin_vel = 0;
+        lin_vel = 0.5;
+        ang_vel = 0;
+        new_rotation = false;
       }
-    } else
-    {
-      lin_vel = 0.5;
-      ang_vel = 0;
-      new_rotation = false;
-    }
-
-    // Rotate to avoid obstacles
-    if(avoid)
-    {
-      if( new_rotation == false )
+      
+      // Rotate to avoid obstacles
+      if(avoid)
       {
-        double rnd_point = drand48();
-        if( rnd_point >= 0.9 )
+        if( new_rotation == false )
         {
-          last_ang_vel = -last_ang_vel;
+          double rnd_point = drand48();
+          if( rnd_point >= 0.9 )
+          {
+            last_ang_vel = -last_ang_vel;
+          }
         }
+        ang_vel = last_ang_vel;
+        new_rotation = true;
       }
-      ang_vel = last_ang_vel;
-      new_rotation = true;
-    }
-
+    } else // Manual mode
+    {
+      if( closest_front_obstacle < min_front_dist )
+        lin_vel = 0;
+    } 
+      
     // Limit maximum velocities
     // (not needed here)
 //    lin_vel = clipValue(lin_vel, -MAX_LIN_VEL, MAX_LIN_VEL);
@@ -243,7 +355,7 @@ int main(int argc, char** argv)
     // Send velocity commands
     vel_cmd.angular.z = ang_vel;
     vel_cmd.linear.x = lin_vel;
-    vel_pub.publish(vel_cmd);
+    velPub.publish(vel_cmd);
 
     // Terminate loop if Escape key is pressed
 //    if( cv::waitKey(10) == 27 )
@@ -256,7 +368,7 @@ int main(int argc, char** argv)
   // If we are quitting, stop the robot
   vel_cmd.angular.z = 0;
   vel_cmd.linear.x = 0;
-  vel_pub.publish(vel_cmd);
+  velPub.publish(vel_cmd);
 
 
   return 1;

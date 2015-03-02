@@ -6,6 +6,10 @@
     
   </group>
   
+  <!-- Run wiimote -->
+  <node pkg="wiimote" type="wiimote_node.py" name="wiimote" required="false" respawn="true"/>
+
   <!-- Run our application -->
   <node pkg="p3dx_apps" type="p3dx_demo" name="p3dx_demo" required="true" cwd="node"/>
+  
 </launch>
