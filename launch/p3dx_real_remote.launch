@@ -1,0 +1,18 @@
+<launch>
+  <!-- arg name="enableMotor" value="1"/ -->
+
+  <!-- Run wiimote -->
+  <node pkg="wiimote" type="wiimote_node.py" name="wiimote" required="false" respawn="true"/>
+
+  <group ns="robot_0">
+    <!-- Open the laser. See http://wiki.ros.org/urg_node for more details. -->
+    <node pkg="urg_node" type="urg_node" name="hokuyo_laser" required="false" respawn="true" />
+
+    <!-- Run tf to enable laser view TODO: UPDATE ME-->
+    <node pkg="tf" type="static_transform_publisher" name="laser_tf" args="0.0 0.0 0.0 0.0 0.0 0.0 map laser 100" required="false" respawn="true"/>  
+  </group>
+ 
+  <!-- Run our application -->
+  <node pkg="p3dx_apps" type="p3dx_demo" name="p3dx_demo" required="false" respawn="true" cwd="node"/>
+  
+</launch>
