@@ -1,0 +1,16 @@
+<launch>
+  <arg name="robotName" value="pioneer"/>
+
+  <group ns="rtabmap">  
+    <!-- Visualisation RTAB-Map -->
+    <node pkg="rtabmap_ros" type="rtabmapviz" name="rtabmapviz" args="-d $(find rtabmap_ros)/launch/config/rgbd_gui.ini" output="screen">
+      <param name="subscribe_stereo"    type="bool"   value="false"/>
+      <param name="subscribe_odom_info" type="bool"   value="false"/>
+      <param name="queue_size"          type="int"    value="10"/>
+      <param name="frame_id"            type="string" value="base_link"/>
+      <remap from="odom_info"         to="/stereo_camera/odom_info"/>
+      <remap from="odom"              to="/$(arg robotName)/odom"/>
+    </node>
+  </group>
+
+</launch>

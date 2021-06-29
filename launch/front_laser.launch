@@ -7,7 +7,7 @@
   <include file="$(find sick_safetyscanners)/launch/sick_safetyscanners.launch">
     <arg name="sensor_ip" value="$(arg front_sensor_ip)"/>
     <arg name="host_ip" value="$(arg front_sensor_host_ip)"/>
-    <arg name="frame_id" value="base_front_laser_link"/>
+    <arg name="frame_id" value="base_laser_link"/>
     <!--<arg name="angle_start"           default="-2.138066955"/>
     <arg name="angle_end"             default="2.138066955" />-->
     
@@ -18,7 +18,7 @@
   <!-- Run the TF for the front laser -->
   <node pkg="tf2_ros" type="static_transform_publisher" 
         name="front_laser_link_broadcaster" 
-        args="0.11 0 0.20 0 0 0 1 base_footprint base_front_laser_link"
+        args="0.11 0 0.20 0 0 0 1 base_link base_laser_link"
         required="true"/>
 
   <!-- Open rviz with our configuration -->
