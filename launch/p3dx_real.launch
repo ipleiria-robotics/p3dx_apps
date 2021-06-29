@@ -1,24 +1,27 @@
 <launch>
-  <!-- arg name="enableMotor" value="1"/ -->
+  <arg name="robotName" value="pioneer"/>
 
   <!-- Run wiimote -->
-  <node pkg="wiimote" type="wiimote_node.py" name="wiimote" required="false" respawn="true"/>
+  <!-- <node pkg="wiimote" type="wiimote_node.py" name="wiimote" required="false" respawn="true"/> -->
 
-  <group ns="robot_0">
-    <!-- Open the laser. See http://wiki.ros.org/urg_node for more details. -->
-    <node pkg="urg_node" type="urg_node" name="hokuyo_laser" required="false" respawn="true" />
+  <group ns="$(arg robotName)">
+    <!-- Open the laser -->
+    <remap from="/$(arg robotName)/sick_safetyscanners/scan" to="/$(arg robotName)/scan"/>
+    <include file="$(find p3dx_apps)/launch/front_laser.launch"/>
 
     <!-- Run P2OS driver -->
-    <node pkg="p2os_driver" type="p2os_driver" name="p2os" required="false" respawn="true"/>
-    
+<!--    <node pkg="p2os_driver" type="p2os_driver" name="p2os" required="false" respawn="true">
+        <param name="port" type="string" value="/dev/ttyUSB0" />
+    </node>
+-->
   </group>
   
   <!-- Enable motors -->
   <node pkg="rostopic" type="rostopic" name="p3dx_enable"
-        args="pub /robot_0/cmd_motor_state p2os_msgs/MotorState 1"
+        args="pub /$(arg robotName)/cmd_motor_state p2os_msgs/MotorState 1"
         respawn="true" respawn_delay="30"/>
 
   <!-- Run our application -->
-  <node pkg="p3dx_apps" type="p3dx_demo" name="p3dx_demo" required="false" respawn="true" cwd="node"/>
+  <!-- <node pkg="p3dx_apps" type="p3dx_demo" name="p3dx_demo" required="false" respawn="true" cwd="node"/> -->
   
 </launch>

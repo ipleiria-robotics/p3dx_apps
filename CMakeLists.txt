@@ -15,7 +15,7 @@ find_package(catkin REQUIRED COMPONENTS roscpp roslaunch)
 # Declare the project as a catkin package
 catkin_package()
 
-# Check for launch files
+# Check for possible syntax error in our launch files
 roslaunch_add_file_check(launch)
 
 # Add header folders
