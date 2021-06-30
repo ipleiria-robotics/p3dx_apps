@@ -9,6 +9,7 @@
           <arg name="unite_imu_method" value="linear_interpolation"/>
           <arg name="enable_gyro" value="true"/>
           <arg name="enable_accel" value="true"/>
+          <arg name="enable_orientation" value="true"/>
       </include>
 
       <!-- Run the TF for the front camera -->

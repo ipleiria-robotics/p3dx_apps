@@ -33,7 +33,7 @@ To use the wiimote as a controller,makesure the corresponding package is install
 
 ### Intel Realsense
 
-We are using the Intel Realsense D435i sensor, namely the [ROS-related package](httpp://wiki.ros.org/realsense2_camera). The easiest way to get it working is to follow the guidelines available [here](https://github.com/intel-ros/realsense/#installation-instructions). We are using the Intel repository library packages but, for the ros package, we are cloning localy in the catkin workspace the original package.
+We are using the Intel Realsense D435i sensor, namely the [ROS-related package](httpp://wiki.ros.org/realsense2_camera). The easiest way to get it working is to follow the guidelines available [here](https://github.com/intel-ros/realsense/#installation-instructions). We are using the Intel repository library packages (asdescribed [here](https://github.com/IntelRealSense/librealsense/blob/master/doc/distribution_linux.md#installing-the-packages))but, for the ros package, we are cloning localy in the catkin workspace the original package.
 
 The guide above should advise you to install the following packages:
 `$ sudo apt install librealsense2-dkms librealsense2-utils librealsense2-dev librealsense2-dbg`
