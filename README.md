@@ -4,7 +4,7 @@ Applications using the Pioneer P3-DX in the Advanced Robotics and Smart Factorie
 
 These notes are currently for ROS 1, and should work (if slight adaptations) for both the melodic and noetic versions in Ubuntu 18.04 and Ubuntu 20.04.
 
-The main source of information is http://wiki.ros.org/Robots/AMR_Pioneer_Compatible-
+The main source of information is http://wiki.ros.org/Robots/AMR_Pioneer_Compatible.
 
 ## Setting up the workspace
 
